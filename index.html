@@ -17,6 +17,7 @@
             margin: 0;
             padding: 10px;
             box-sizing: border-box;
+            overscroll-behavior: none; /* Evitar "pull-to-refresh" en mòbils */
         }
 
         h1 {
@@ -136,31 +137,7 @@
             margin-bottom: 10px;
         }
 
-        /* Controls tàctils */
-        .touch-controls {
-            position: fixed;
-            bottom: 10px;
-            left: 0;
-            width: 100%;
-            height: 150px; /* Altura de la zona de control */
-            display: none; /* Amagat per defecte */
-            z-index: 100;
-        }
-        .touch-controls .touch-area {
-            position: absolute;
-            background-color: rgba(122, 59, 46, 0.2); /* Semi-transparent */
-            border: 2px solid rgba(122, 59, 46, 0.5);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2em;
-            color: rgba(245, 232, 208, 0.7);
-        }
-        #touchUp { top: 0; left: 33.33%; width: 33.33%; height: 50%; }
-        #touchDown { bottom: 0; left: 33.33%; width: 33.33%; height: 50%; }
-        #touchLeft { top: 0; left: 0; width: 33.33%; height: 100%; }
-        #touchRight { top: 0; right: 0; width: 33.33%; height: 100%; }
+        /* Controls tàctils anteriors eliminats */
 
         /* Mode pantalla petita */
         @media (max-width: 768px) {
@@ -210,12 +187,7 @@
         </ul>
     </div>
 
-    <div class="touch-controls" id="touchControlsContainer">
-        <div class="touch-area" id="touchUp">▲</div>
-        <div class="touch-area" id="touchDown">▼</div>
-        <div class="touch-area" id="touchLeft">◄</div>
-        <div class="touch-area" id="touchRight">►</div>
-    </div>
+    <!-- Div dels controls tàctils anteriors eliminat -->
 
     <script>
         const canvas = document.getElementById('gameCanvas');
@@ -232,11 +204,7 @@
         const messageArea = document.getElementById('messageArea');
         const victoryMessageDisplay = document.getElementById('victoryMessage');
         
-        const touchControlsContainer = document.getElementById('touchControlsContainer');
-        const touchUp = document.getElementById('touchUp');
-        const touchDown = document.getElementById('touchDown');
-        const touchLeft = document.getElementById('touchLeft');
-        const touchRight = document.getElementById('touchRight');
+        // Variables dels controls tàctils anteriors eliminades
 
         const literaryData = [
             {
@@ -278,8 +246,7 @@
 
         let snake;
         let dx, dy;
-        // MODIFICAT: targetWordInfo ara tindrà pixelWidth i pixelHeight
-        let targetWordInfo; // { text: "paraula", x: 0, y: 0, pixelWidth: 0, pixelHeight: 0, fragment: "", author: "", work: "" }
+        let targetWordInfo;
         let score;
         let highScore = localStorage.getItem('serpLiterariaHighScore') || 0;
         let level;
@@ -363,7 +330,7 @@
                 drawSnake();
                 drawTargetWord();
                 checkCollision();
-                checkWordEaten(); // Ara comprova després de moure i abans de treure la cua (si no menja)
+                checkWordEaten();
                 if (!isGameOver) gameLoop();
             }, gameSpeed);
         }
@@ -390,8 +357,7 @@
         }
         
         function growSnake() {
-            // La serp creix no retirant la cua quan menja. Aquesta funció és cridada
-            // i la lògica de retirar la cua està a checkWordEaten (només si no menja)
+            // No cal fer res, la cua no es treu si es menja
         }
 
 
@@ -402,8 +368,6 @@
             if (currentFragmentIndex === -1 || wordIndexInFragment >= literaryData[currentFragmentIndex].target_words.length) {
                 currentFragmentIndex = (currentFragmentIndex + 1) % literaryData.length;
                 wordIndexInFragment = 0;
-                // Si es vol que els nivells es basin en fragments complets
-                // if (level <= currentFragmentIndex) nextLevel(); // Podria ser una forma d'avançar nivell
             }
             
             const currentData = literaryData[currentFragmentIndex];
@@ -414,7 +378,7 @@
                 fragment: currentData.fragment,
                 author: currentData.author,
                 work: currentData.work,
-                x: 0, y: 0, pixelWidth: 0, pixelHeight: 0 // S'ompliran a placeWordOnCanvas
+                x: 0, y: 0, pixelWidth: 0, pixelHeight: 0
             };
             
             placeWordOnCanvas();
@@ -423,36 +387,30 @@
             startWordTimer();
         }
         
-        // MODIFICAT: Lògica de posicionament de paraules i comprovació de col·lisió en aparèixer
         function placeWordOnCanvas() {
             ctx.font = `bold ${GRID_SIZE * 0.8}px Garamond, Times New Roman, serif`;
             const metrics = ctx.measureText(targetWordInfo.text);
             targetWordInfo.pixelWidth = metrics.width;
-            // Estimem l'alçada del text. textBaseline='top' fa que 'y' sigui la part superior.
-            // La 'actualBoundingBoxAscent' + 'actualBoundingBoxDescent' seria més precisa però no universal.
-            // Per a Garamond i similars, 0.8 * GRID_SIZE és una bona aproximació per l'alçada visual.
             targetWordInfo.pixelHeight = GRID_SIZE * 0.8; 
 
             let placed = false;
             let attempts = 0;
             while (!placed && attempts < 100) {
-                // Posició aleatòria en píxels, assegurant que la paraula sencera hi càpiga
                 const maxX = canvas.width - targetWordInfo.pixelWidth;
                 const maxY = canvas.height - targetWordInfo.pixelHeight;
 
-                if (maxX < 0 || maxY < 0) { // La paraula és massa gran per al canvas
-                    console.warn("Paraula massa gran per al canvas, es retallarà:", targetWordInfo.text);
+                if (maxX < 0 || maxY < 0) { 
+                    console.warn("Paraula massa gran per al canvas:", targetWordInfo.text);
                     targetWordInfo.x = 0;
                     targetWordInfo.y = 0;
-                    // Si és més ampla, pixelWidth s'hauria d'ajustar o mostrar un error
                     targetWordInfo.pixelWidth = Math.min(targetWordInfo.pixelWidth, canvas.width);
                     targetWordInfo.pixelHeight = Math.min(targetWordInfo.pixelHeight, canvas.height);
                     placed = true; 
                     break;
                 }
 
-                targetWordInfo.x = Math.floor(Math.random() * (maxX + 1)); // +1 per incloure maxX
-                targetWordInfo.y = Math.floor(Math.random() * (maxY + 1)); // +1 per incloure maxY
+                targetWordInfo.x = Math.floor(Math.random() * (maxX + 1)); 
+                targetWordInfo.y = Math.floor(Math.random() * (maxY + 1)); 
 
                 let collisionWithSnake = false;
                 const wordRectLeft = targetWordInfo.x;
@@ -466,7 +424,6 @@
                     const segmentTop = segment.y * GRID_SIZE;
                     const segmentBottom = segmentTop + GRID_SIZE;
 
-                    // Comprovació de superposició de rectangles (AABB)
                     if (wordRectLeft < segmentRight && wordRectRight > segmentLeft &&
                         wordRectTop < segmentBottom && wordRectBottom > segmentTop) {
                         collisionWithSnake = true;
@@ -481,7 +438,6 @@
             }
 
             if (!placed) { 
-                // Si després de 100 intents no troba lloc, la centra
                 targetWordInfo.x = Math.max(0, (canvas.width - targetWordInfo.pixelWidth) / 2);
                 targetWordInfo.y = Math.max(0, (canvas.height - targetWordInfo.pixelHeight) / 2);
             }
@@ -492,28 +448,24 @@
             ctx.fillStyle = '#c0392b'; 
             ctx.font = `bold ${GRID_SIZE * 0.8}px Garamond, Times New Roman, serif`;
             ctx.textAlign = 'left';
-            ctx.textBaseline = 'top'; // Important per a la consistència de targetWordInfo.y
+            ctx.textBaseline = 'top'; 
             ctx.fillText(targetWordInfo.text, targetWordInfo.x, targetWordInfo.y);
         }
         
-        // MODIFICAT: Lògica de detecció de "menjada"
         function checkWordEaten() {
-            if (!targetWordInfo || !targetWordInfo.pixelWidth) return; // Assegurar que la paraula té dimensions
+            if (!targetWordInfo || !targetWordInfo.pixelWidth) return;
             const head = snake[0];
             
-            // Bounding box del cap de la serp en píxels
             const headLeft = head.x * GRID_SIZE;
             const headRight = headLeft + GRID_SIZE;
             const headTop = head.y * GRID_SIZE;
             const headBottom = headTop + GRID_SIZE;
 
-            // Bounding box de la paraula en píxels
             const wordLeft = targetWordInfo.x;
             const wordRight = targetWordInfo.x + targetWordInfo.pixelWidth;
             const wordTop = targetWordInfo.y;
             const wordBottom = targetWordInfo.y + targetWordInfo.pixelHeight;
             
-            // Comprovar superposició dels dos rectangles (AABB collision)
             if (headLeft < wordRight && headRight > wordLeft &&
                 headTop < wordBottom && headBottom > wordTop) {
                 
@@ -521,20 +473,15 @@
                 const timeBonus = Math.max(0, Math.floor(timerValue * 5)); 
                 score += basePoints + timeBonus;
                 
-                growSnake(); // La serp creix (no es treu la cua)
+                growSnake(); 
                 updateScoreDisplay();
                 
-                // Condició per pujar de nivell: per exemple, cada 3 paraules menjades puja de nivell
-                if (snake.length % 3 === 1 && snake.length > 1) { // 1 (inicial) + 3 = 4, etc.
+                if (snake.length % 3 === 1 && snake.length > 1) { 
                      if (level < MAX_LEVELS) nextLevel();
-                     else if (level === MAX_LEVELS && !isGameOver) { // Si ja està a MAX_LEVELS i encara no ha guanyat
-                        // Comprovar si s'han menjat totes les paraules de l'últim nivell (exemple simple)
-                        // Aquesta lògica de victòria pot ser més complexa. Per ara, la victòria és al superar MAX_LEVELS.
-                     }
                 }
                 selectNewFragmentAndWord();
             } else {
-                 snake.pop(); // Treu la cua si no menja
+                 snake.pop(); 
             }
         }
 
@@ -569,8 +516,6 @@
         
         function nextLevel() {
             level++;
-            // La comprovació de MAX_LEVELS es fa abans de cridar nextLevel,
-            // o bé aquí, per anar a la pantalla de victòria.
             if (level > MAX_LEVELS) {
                 triggerVictory();
                 return;
@@ -638,13 +583,12 @@
             if (isGameOver && e.key !== "Enter") return;
 
             const key = e.key.toLowerCase();
-            // Permetre iniciar/reiniciar amb Enter si els botons són visibles
             if (e.key === "Enter") {
                 if (startGameButton.style.display === 'block') {
                     startGame();
                     return;
                 } else if (restartGameButton.style.display === 'block' && isGameOver) {
-                    startGame(); // Reutilitza startGame per reiniciar
+                    startGame(); 
                     return;
                 }
             }
@@ -656,22 +600,62 @@
             const ARROW_LEFT = 'arrowleft'; const A_KEY = 'a';
             const ARROW_RIGHT = 'arrowright'; const D_KEY = 'd';
 
-            // Evitar que la serp es mogui instantàniament en la direcció oposada
             if ((key === ARROW_UP || key === W_KEY) && dy === 0) { dx = 0; dy = -1; }
             else if ((key === ARROW_DOWN || key === S_KEY) && dy === 0) { dx = 0; dy = 1; }
             else if ((key === ARROW_LEFT || key === A_KEY) && dx === 0) { dx = -1; dy = 0; }
             else if ((key === ARROW_RIGHT || key === D_KEY) && dx === 0) { dx = 1; dy = 0; }
         }
         
+        // NOU: Funció per gestionar els tocs al canvas
+        function handleCanvasTouch(event) {
+            if (isGameOver || !snake || snake.length === 0) return; // No fer res si el joc ha acabat o la serp no existeix
+            event.preventDefault(); // Evitar scroll o zoom
+
+            if (event.touches.length > 0) {
+                const touch = event.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                
+                // Calcular les coordenades del toc relatives al canvas, tenint en compte l'escalat del CSS
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const touchX = (touch.clientX - rect.left) * scaleX;
+                const touchY = (touch.clientY - rect.top) * scaleY;
+
+                // Centre del cap de la serp en píxels
+                const headPixelX = snake[0].x * GRID_SIZE + GRID_SIZE / 2;
+                const headPixelY = snake[0].y * GRID_SIZE + GRID_SIZE / 2;
+
+                const diffX = touchX - headPixelX;
+                const diffY = touchY - headPixelY;
+
+                // Determinar la direcció predominant
+                if (Math.abs(diffX) > Math.abs(diffY)) {
+                    // Moviment horitzontal predominant
+                    if (diffX > 0 && dx !== -1) { // Moure a la dreta (no es movia a l'esquerra)
+                        dx = 1; dy = 0;
+                    } else if (diffX < 0 && dx !== 1) { // Moure a l'esquerra (no es movia a la dreta)
+                        dx = -1; dy = 0;
+                    }
+                } else if (Math.abs(diffY) > Math.abs(diffX)) {
+                    // Moviment vertical predominant
+                    if (diffY > 0 && dy !== -1) { // Moure avall (no es movia amunt)
+                        dx = 0; dy = 1;
+                    } else if (diffY < 0 && dy !== 1) { // Moure amunt (no es movia avall)
+                        dx = 0; dy = -1;
+                    }
+                }
+                // Si Math.abs(diffX) === Math.abs(diffY) (diagonal perfecta) o el toc és molt a prop del cap,
+                // la direcció no canvia a menys que una de les condicions anteriors es compleixi.
+                // Això evita canvis erràtics amb tocs ambigus.
+            }
+        }
+
+        // MODIFICAT: setupTouchControls ara afegeix l'event listener al canvas
         function setupTouchControls() {
             const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (navigator.msMaxTouchPoints > 0);
             if (isTouchDevice) {
-                touchControlsContainer.style.display = 'block'; // O 'flex' o el que correspongui al seu disseny
-
-                touchUp.addEventListener('touchstart', (e) => { e.preventDefault(); if (dy === 0 && !isGameOver) { dx = 0; dy = -1; } });
-                touchDown.addEventListener('touchstart', (e) => { e.preventDefault(); if (dy === 0 && !isGameOver) { dx = 0; dy = 1; } });
-                touchLeft.addEventListener('touchstart', (e) => { e.preventDefault(); if (dx === 0 && !isGameOver) { dx = -1; dy = 0; } });
-                touchRight.addEventListener('touchstart', (e) => { e.preventDefault(); if (dx === 0 && !isGameOver) { dx = 1; dy = 0; } });
+                // Afegir l'event listener al canvas per al nou control tàctil
+                canvas.addEventListener('touchstart', handleCanvasTouch, { passive: false });
             }
         }
 
@@ -680,8 +664,7 @@
         restartGameButton.addEventListener('click', startGame); 
         window.addEventListener('resize', () => {
              resizeCanvas(); 
-             // Si el joc està en marxa, redibuixar per adaptar-se a la nova mida del canvas
-             if (!isGameOver && snake) { // Comprovar que snake existeix
+             if (!isGameOver && snake) { 
                 clearCanvas();
                 drawSnake();
                 drawTargetWord();
