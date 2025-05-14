@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>🐍 Serp Literària del Segle d'Or 📜</title>
+    <style>
+        body {
+            font-family: 'Garamond', 'Times New Roman', serif;
+            background-color: #f5e8d0; /* Color pergamí clar */
+            color: #4a2c2a; /* Marró fosc per text */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            color: #7a3b2e; /* Marró vermellós */
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 1px 1px 2px #c8b898;
+        }
+
+        .game-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        #gameCanvas {
+            border: 5px solid #7a3b2e; /* Marge com un marc antic */
+            background-color: #fff9e6; /* Fons del canvas una mica més clar */
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            touch-action: none; /* Per evitar zoom/scroll en interactuar amb el canvas en tàctil */
+        }
+
+        .ui-panel {
+            background-color: #eaddc3; /* Fons del panell */
+            border: 2px solid #a47b58;
+            padding: 15px;
+            border-radius: 8px;
+            width: 300px;
+            min-width: 280px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .ui-panel h2 {
+            color: #7a3b2e;
+            margin-top: 0;
+            margin-bottom: 5px;
+            font-size: 1.4em;
+            border-bottom: 1px solid #a47b58;
+            padding-bottom: 5px;
+        }
+
+        .ui-panel p {
+            margin: 5px 0;
+            font-size: 1em;
+        }
+
+        .target-word-display {
+            font-weight: bold;
+            color: #c0392b; /* Vermell destacat */
+            font-size: 1.5em;
+            text-align: center;
+            padding: 10px;
+            background-color: #fff9e6;
+            border: 1px dashed #a47b58;
+            border-radius: 4px;
+        }
+
+        .fragment-container {
+            max-height: 150px;
+            overflow-y: auto;
+            padding: 5px;
+            border: 1px solid #c8b898;
+            background-color: #f5f0e0;
+            font-style: italic;
+            font-size: 0.9em;
+        }
+
+        button#startGameButton, button#restartGameButton {
+            background-color: #7a3b2e;
+            color: #f5e8d0;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1.2em;
+            font-family: 'Garamond', 'Times New Roman', serif;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+            display: block;
+            margin: 20px auto;
+        }
+
+        button#startGameButton:hover, button#restartGameButton:hover {
+            background-color: #a47b58;
+        }
+
+        #messageArea {
+            text-align: center;
+            font-size: 1.5em;
+            color: #c0392b;
+            margin-top: 15px;
+            height: 40px; /* Espai per missatges */
+        }
+        #victoryMessage {
+            text-align: center;
+            padding: 20px;
+            background-color: #eaddc3;
+            border: 2px solid #7a3b2e;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 1.1em;
+        }
+        #victoryMessage h3 {
+            color: #7a3b2e;
+        }
+        #victoryMessage ul {
+            list-style-type: '📜';
+            padding-left: 20px;
+        }
+        #victoryMessage li {
+            margin-bottom: 10px;
+        }
+
+        /* Controls tàctils */
+        .touch-controls {
+            position: fixed;
+            bottom: 10px;
+            left: 0;
+            width: 100%;
+            height: 150px; /* Altura de la zona de control */
+            display: none; /* Amagat per defecte */
+            z-index: 100;
+        }
+        .touch-controls .touch-area {
+            position: absolute;
+            background-color: rgba(122, 59, 46, 0.2); /* Semi-transparent */
+            border: 2px solid rgba(122, 59, 46, 0.5);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            color: rgba(245, 232, 208, 0.7);
+        }
+        #touchUp { top: 0; left: 33.33%; width: 33.33%; height: 50%; }
+        #touchDown { bottom: 0; left: 33.33%; width: 33.33%; height: 50%; }
+        #touchLeft { top: 0; left: 0; width: 33.33%; height: 100%; }
+        #touchRight { top: 0; right: 0; width: 33.33%; height: 100%; }
+
+        /* Mode pantalla petita */
+        @media (max-width: 768px) {
+            h1 { font-size: 2em; }
+            .game-container { flex-direction: column; align-items: center; }
+            .ui-panel { width: 90%; max-width: 400px; }
+            #gameCanvas { width: 90vw; height: 90vw; max-width: 400px; max-height: 400px;}
+        }
+         @media (max-width: 400px) {
+            #gameCanvas { width: 300px; height: 300px; }
+        }
+    </style>
+</head>
+<body>
+    <h1>🐍 Serp Literària del Segle d'Or 📜</h1>
+
+    <div class="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div class="ui-panel">
+            <h2>Informació del Joc</h2>
+            <p>Puntuació: <span id="score">0</span></p>
+            <p>Rècord: <span id="highScore">0</span></p>
+            <p>Nivell: <span id="level">1</span></p>
+            <p>Temps Restant: <span id="timer">--</span>s</p>
+            
+            <h2>Paraula Objectiu</h2>
+            <div id="targetWordDisplay" class="target-word-display">---</div>
+            
+            <h2>Fragment Literari</h2>
+            <div id="fragmentContainer" class="fragment-container">
+                Selecciona "Començar Joc" per iniciar l'aventura.
+            </div>
+        </div>
+    </div>
+
+    <button id="startGameButton">Començar Joc</button>
+    <button id="restartGameButton" style="display: none;">Tornar a Jugar</button>
+    <div id="messageArea"></div>
+    <div id="victoryMessage" style="display: none;">
+        <h3>🏆 Victòria Literària! 🏆</h3>
+        <p>Has superat tots els reptes i demostrat el teu domini de les lletres del Segle d'Or! Aquí tens unes paraules immortals de Francisco de Quevedo per celebrar-ho:</p>
+        <ul>
+            <li>"Todos anhelan la vida; nadie la longevidad."</li>
+            <li>"El que quiere de esta vida todas las cosas a su gusto, tendrá muchos disgustos."</li>
+            <li>"Donde hay poca justicia, es un peligro tener razón."</li>
+            <li>"Polvo serán, mas polvo enamorado."</li>
+        </ul>
+    </div>
+
+    <div class="touch-controls" id="touchControlsContainer">
+        <div class="touch-area" id="touchUp">▲</div>
+        <div class="touch-area" id="touchDown">▼</div>
+        <div class="touch-area" id="touchLeft">◄</div>
+        <div class="touch-area" id="touchRight">►</div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const scoreDisplay = document.getElementById('score');
+        const highScoreDisplay = document.getElementById('highScore');
+        const levelDisplay = document.getElementById('level');
+        const timerDisplay = document.getElementById('timer');
+        const targetWordUiDisplay = document.getElementById('targetWordDisplay');
+        const fragmentContainer = document.getElementById('fragmentContainer');
+        const startGameButton = document.getElementById('startGameButton');
+        const restartGameButton = document.getElementById('restartGameButton');
+        const messageArea = document.getElementById('messageArea');
+        const victoryMessageDisplay = document.getElementById('victoryMessage');
+        
+        const touchControlsContainer = document.getElementById('touchControlsContainer');
+        const touchUp = document.getElementById('touchUp');
+        const touchDown = document.getElementById('touchDown');
+        const touchLeft = document.getElementById('touchLeft');
+        const touchRight = document.getElementById('touchRight');
+
+        const literaryData = [
+            {
+                author: "Miguel de Cervantes",
+                work: "Don Quijote de la Mancha",
+                fragment: "En un lugar de la Mancha, de cuyo nombre no quiero acordarme, no ha mucho tiempo que vivía un hidalgo de los de lanza en astillero, adarga antigua, rocín flaco y galgo corredor. Una olla de algo más vaca que carnero, salpicón las más noches, duelos y quebrantos los sábados, lentejas los viernes, algún palomino de añadidura los domingos, consumían las tres partes de su hacienda.",
+                target_words: ["Mancha", "hidalgo", "rocín", "olla", "lentejas"]
+            },
+            {
+                author: "Francisco de Quevedo",
+                work: "El Buscón",
+                fragment: "Yo, señor, soy de Segovia; mi padre se llamó Clemente Pablo, natural del mismo pueblo; Dios le tenga en el cielo. Fue, tal como todos dicen, de oficio barbero; aunque eran tan altos sus pensamientos, que se corría de que le llamasen así, diciendo que él era tundidor de mejillas y sastre de barbas.",
+                target_words: ["Segovia", "padre", "barbero", "cielo", "barbas"]
+            },
+            {
+                author: "Lope de Vega",
+                work: "Fuenteovejuna",
+                fragment: "Laurencia: ¡Cuitada de mí! ¿A Vos sé guiarme, honor? ¿Sois montaña que se sube con dificultad tan espantosa? ¿O sois cristal que con un soplo se quiebra, o estáis en las palmas de las manos donde peligra tanto vuestro ser? Parece que estáis en la opinión, mudable como ella.",
+                target_words: ["honor", "montaña", "cristal", "palmas", "opinión"]
+            },
+            {
+                author: "Calderón de la Barca",
+                work: "La vida es sueño",
+                fragment: "Segismundo: Yo sueño que estoy aquí, destas prisiones cargado; y soñé que en otro estado más lisonjero me vi. ¿Qué es la vida? Un frenesí. ¿Qué es la vida? Una ilusión, una sombra, una ficción; y el mayor bien es pequeño; que toda la vida es sueño, y los sueños, sueños son.",
+                target_words: ["sueño", "prisiones", "vida", "ilusión", "ficción"]
+            },
+            {
+                author: "Tirso de Molina",
+                work: "El Burlador de Sevilla",
+                fragment: "Don Juan: Largo me lo fiáis. Este es mi método: burlar a las mujeres y dejarlas. No hay plazo que no se cumpla ni deuda que no se pague. A Sevilla voy, a gozar de vuestro engaño.",
+                target_words: ["Juan", "burlar", "plazo", "deuda", "Sevilla"]
+            }
+        ];
+
+        const GRID_SIZE = 20; // Píxels per cada quadrat de la graella
+        let canvasSize = 400; // Mida per defecte del canvas
+        
+        let tileCount; // Es calcularà basat en canvasSize i GRID_SIZE
+
+        let snake;
+        let dx, dy;
+        let targetWordInfo; // { text: "paraula", x: 0, y: 0, width: 0, height: 0, fragment: "", author: "", work: "" }
+        let score;
+        let highScore = localStorage.getItem('serpLiterariaHighScore') || 0;
+        let level;
+        let gameSpeed;
+        let timerValue;
+        let timerIntervalId;
+        let gameLoopTimeoutId;
+        let isGameOver;
+        let currentFragmentIndex;
+        let wordIndexInFragment;
+
+        const INITIAL_SPEED = 150; // ms per moviment
+        const SPEED_INCREMENT_PER_LEVEL = 15; // ms menys per nivell
+        const INITIAL_TIME_PER_WORD = 20; // segons
+        const TIME_DECREMENT_PER_LEVEL = 1; // segon menys per nivell
+        const MAX_LEVELS = 5; // O el nombre de fragments disponibles
+
+        function resizeCanvas() {
+            const gameContainerWidth = document.querySelector('.game-container').offsetWidth;
+            const panelWidth = document.querySelector('.ui-panel').offsetWidth;
+            let availableWidth = gameContainerWidth - panelWidth - 40; // 20px gap + 20px per si de cas
+            
+            if (window.innerWidth <= 768) { // Mode mòbil / tauleta
+                availableWidth = window.innerWidth * 0.9; // 90% de l'amplada de la finestra
+                 canvasSize = Math.min(availableWidth, window.innerHeight * 0.5, 400); // Limitar alçada i màxim
+            } else { // Escriptori
+                canvasSize = Math.min(availableWidth, 500);
+            }
+            canvasSize = Math.floor(canvasSize / GRID_SIZE) * GRID_SIZE; // Assegurar que sigui múltiple de GRID_SIZE
+            canvasSize = Math.max(canvasSize, GRID_SIZE * 15); // Mida mínima
+
+            canvas.width = canvasSize;
+            canvas.height = canvasSize;
+            tileCount = canvas.width / GRID_SIZE;
+        }
+
+
+        function initGame() {
+            isGameOver = false;
+            messageArea.textContent = "";
+            victoryMessageDisplay.style.display = 'none';
+            restartGameButton.style.display = 'none';
+            startGameButton.style.display = 'block';
+            
+            resizeCanvas(); // Ajustar mida abans de començar
+
+            snake = [{ x: Math.floor(tileCount / 2), y: Math.floor(tileCount / 2) }];
+            dx = 1; dy = 0; // Comença movent-se a la dreta
+            score = 0;
+            level = 1;
+            gameSpeed = INITIAL_SPEED;
+            timerValue = INITIAL_TIME_PER_WORD;
+            currentFragmentIndex = -1; // Per forçar la selecció del primer fragment
+            wordIndexInFragment = -1;
+
+            updateScoreDisplay();
+            updateLevelDisplay();
+            selectNewFragmentAndWord();
+            
+            if (gameLoopTimeoutId) clearTimeout(gameLoopTimeoutId);
+            if (timerIntervalId) clearInterval(timerIntervalId);
+        }
+        
+        function startGame() {
+            initGame(); // Reinicia l'estat per si era un restart
+            startGameButton.style.display = 'none';
+            restartGameButton.style.display = 'block'; // Es mostrarà quan acabi la partida
+            isGameOver = false;
+            messageArea.textContent = "";
+            victoryMessageDisplay.style.display = 'none';
+            gameLoop();
+            startWordTimer();
+        }
+
+        function gameLoop() {
+            if (isGameOver) return;
+
+            gameLoopTimeoutId = setTimeout(() => {
+                clearCanvas();
+                moveSnake();
+                drawSnake();
+                drawTargetWord();
+                checkCollision();
+                checkWordEaten();
+                if (!isGameOver) gameLoop();
+            }, gameSpeed);
+        }
+
+        function clearCanvas() {
+            ctx.fillStyle = '#fff9e6'; // Fons del canvas
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function drawSnake() {
+            ctx.fillStyle = '#5d9c59'; // Verd per la serp
+            snake.forEach((segment, index) => {
+                ctx.fillRect(segment.x * GRID_SIZE, segment.y * GRID_SIZE, GRID_SIZE -1 , GRID_SIZE -1);
+                if (index === 0) { // Cap de la serp
+                    ctx.fillStyle = '#3e6b3d'; // Verd més fosc per al cap
+                    ctx.fillRect(segment.x * GRID_SIZE, segment.y * GRID_SIZE, GRID_SIZE -1 , GRID_SIZE -1);
+                }
+            });
+        }
+
+        function moveSnake() {
+            const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+            snake.unshift(head); // Afegeix nou cap
+            // No treu la cua aquí, es farà si no menja la paraula
+        }
+        
+        function growSnake() {
+            // La serp ja creix en afegir el cap a moveSnake.
+            // No cal fer res més aquí, ja que la cua no es retira si menja.
+        }
+
+
+        function selectNewFragmentAndWord() {
+            if (timerIntervalId) clearInterval(timerIntervalId);
+
+            wordIndexInFragment++;
+            if (currentFragmentIndex === -1 || wordIndexInFragment >= literaryData[currentFragmentIndex].target_words.length) {
+                currentFragmentIndex = (currentFragmentIndex + 1) % literaryData.length;
+                wordIndexInFragment = 0;
+            }
+            
+            const currentData = literaryData[currentFragmentIndex];
+            const wordText = currentData.target_words[wordIndexInFragment];
+
+            targetWordInfo = {
+                text: wordText,
+                fragment: currentData.fragment,
+                author: currentData.author,
+                work: currentData.work
+            };
+            
+            placeWordOnCanvas();
+            updateFragmentAndTargetDisplay();
+            timerValue = Math.max(5, INITIAL_TIME_PER_WORD - (level - 1) * TIME_DECREMENT_PER_LEVEL);
+            startWordTimer();
+        }
+        
+        function placeWordOnCanvas() {
+            ctx.font = `${GRID_SIZE * 0.8}px Garamond, Times New Roman, serif`;
+            const metrics = ctx.measureText(targetWordInfo.text);
+            targetWordInfo.width = metrics.width;
+            targetWordInfo.height = GRID_SIZE * 0.8; // Alçada aproximada
+
+            let placed = false;
+            let attempts = 0;
+            while(!placed && attempts < 100) {
+                targetWordInfo.x = Math.floor(Math.random() * (canvas.width - targetWordInfo.width));
+                targetWordInfo.y = Math.floor(Math.random() * (canvas.height - targetWordInfo.height * 1.5)) + targetWordInfo.height; // *1.5 per donar espai amunt
+                
+                // Convertir a coordenades de graella per comprovar si xoca amb la serp
+                const wordGridX = Math.floor(targetWordInfo.x / GRID_SIZE);
+                const wordGridY = Math.floor(targetWordInfo.y / GRID_SIZE);
+                const wordGridWidth = Math.ceil(targetWordInfo.width / GRID_SIZE);
+                const wordGridHeight = Math.ceil(targetWordInfo.height / GRID_SIZE);
+
+                let collisionWithSnake = false;
+                for (let i = 0; i < snake.length; i++) {
+                    for (let wx = 0; wx < wordGridWidth; wx++) {
+                        for (let wy = 0; wy < wordGridHeight; wy++) {
+                            if (snake[i].x === wordGridX + wx && snake[i].y === wordGridY + wy) {
+                                collisionWithSnake = true;
+                                break;
+                            }
+                        }
+                        if (collisionWithSnake) break;
+                    }
+                    if (collisionWithSnake) break;
+                }
+                if (!collisionWithSnake) {
+                    placed = true;
+                }
+                attempts++;
+            }
+            if (attempts >= 100) { // Si no troba lloc, la posa al centre (poc probable)
+                targetWordInfo.x = (canvas.width - targetWordInfo.width) / 2;
+                targetWordInfo.y = canvas.height / 2;
+            }
+        }
+
+        function drawTargetWord() {
+            if (!targetWordInfo) return;
+            ctx.fillStyle = '#c0392b'; // Color de la paraula objectiu
+            ctx.font = `bold ${GRID_SIZE * 0.8}px Garamond, Times New Roman, serif`;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top'; // Perquè Y sigui la part superior
+            ctx.fillText(targetWordInfo.text, targetWordInfo.x, targetWordInfo.y);
+        }
+        
+        function checkWordEaten() {
+            if (!targetWordInfo) return;
+            const head = snake[0];
+            
+            // Bounding box de la paraula
+            const wordLeft = targetWordInfo.x;
+            const wordRight = targetWordInfo.x + targetWordInfo.width;
+            const wordTop = targetWordInfo.y;
+            const wordBottom = targetWordInfo.y + targetWordInfo.height;
+
+            // Centre del cap de la serp en píxels
+            const headCenterX = head.x * GRID_SIZE + GRID_SIZE / 2;
+            const headCenterY = head.y * GRID_SIZE + GRID_SIZE / 2;
+            
+            if (headCenterX > wordLeft && headCenterX < wordRight &&
+                headCenterY > wordTop && headCenterY < wordBottom) {
+                
+                // Bonificació per rapidesa
+                const basePoints = 50;
+                const timeBonus = Math.max(0, Math.floor(timerValue * 5)); // Fins a 5 punts per segon restant
+                score += basePoints + timeBonus;
+                
+                growSnake(); // La serp creix (no es treu la cua)
+                updateScoreDisplay();
+                
+                if (score > 0 && score % (200 * level) === 0) { // Cada X punts, puja de nivell
+                    nextLevel();
+                }
+                selectNewFragmentAndWord();
+            } else {
+                 snake.pop(); // Treu la cua si no menja
+            }
+        }
+
+        function checkCollision() {
+            const head = snake[0];
+
+            // Col·lisió amb les vores
+            if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
+                triggerGameOver("Oh, no! Has xocat contra les vores del manuscrit!");
+                return;
+            }
+
+            // Col·lisió amb si mateixa
+            for (let i = 1; i < snake.length; i++) {
+                if (head.x === snake[i].x && head.y === snake[i].y) {
+                    triggerGameOver("Compte! La serp s'ha mossegat la cua!");
+                    return;
+                }
+            }
+        }
+
+        function triggerGameOver(message) {
+            isGameOver = true;
+            if (timerIntervalId) clearInterval(timerIntervalId);
+            if (gameLoopTimeoutId) clearTimeout(gameLoopTimeoutId);
+            messageArea.textContent = `Partida Acabada! ${message}`;
+            restartGameButton.style.display = 'block';
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('serpLiterariaHighScore', highScore);
+                updateScoreDisplay(); // Per mostrar el nou rècord immediatament
+            }
+        }
+        
+        function nextLevel() {
+            level++;
+            if (level > MAX_LEVELS) {
+                triggerVictory();
+                return;
+            }
+            gameSpeed = Math.max(50, INITIAL_SPEED - (level - 1) * SPEED_INCREMENT_PER_LEVEL);
+            messageArea.textContent = `Nivell ${level}! La velocitat augmenta!`;
+            setTimeout(() => messageArea.textContent = "", 2000);
+            updateLevelDisplay();
+        }
+
+        function triggerVictory() {
+            isGameOver = true; // Atura el joc
+            if (timerIntervalId) clearInterval(timerIntervalId);
+            if (gameLoopTimeoutId) clearTimeout(gameLoopTimeoutId);
+            victoryMessageDisplay.style.display = 'block';
+            restartGameButton.style.display = 'block';
+             if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('serpLiterariaHighScore', highScore);
+                updateScoreDisplay();
+            }
+        }
+
+        function startWordTimer() {
+            if (timerIntervalId) clearInterval(timerIntervalId);
+            updateTimerDisplay(); // Mostra el valor inicial
+            timerIntervalId = setInterval(() => {
+                timerValue--;
+                updateTimerDisplay();
+                if (timerValue <= 0) {
+                    clearInterval(timerIntervalId);
+                    triggerGameOver("S'ha esgotat el temps per devorar la paraula!");
+                }
+            }, 1000);
+        }
+
+        function updateScoreDisplay() {
+            scoreDisplay.textContent = score;
+            highScoreDisplay.textContent = highScore;
+        }
+
+        function updateLevelDisplay() {
+            levelDisplay.textContent = level;
+        }
+        
+        function updateTimerDisplay() {
+            timerDisplay.textContent = timerValue;
+            timerDisplay.style.color = timerValue <= 5 ? '#c0392b' : '#4a2c2a'; // Vermell si queda poc temps
+        }
+
+        function updateFragmentAndTargetDisplay() {
+            if (targetWordInfo) {
+                targetWordUiDisplay.textContent = targetWordInfo.text;
+                fragmentContainer.innerHTML = `
+                    <p><em>"${targetWordInfo.fragment}"</em></p>
+                    <p style="text-align:right; font-size:0.9em;">- ${targetWordInfo.author}, <em>${targetWordInfo.work}</em></p>
+                `;
+            } else {
+                targetWordUiDisplay.textContent = "---";
+                fragmentContainer.textContent = "Esperant paraula...";
+            }
+        }
+
+        function handleKeyDown(e) {
+            if (isGameOver && e.key !== "Enter") return;
+
+            const key = e.key.toLowerCase();
+            if (e.key === "Enter" && (isGameOver || startGameButton.style.display === 'block')) {
+                if (startGameButton.style.display === 'block') startGame();
+                else if (restartGameButton.style.display === 'block') startGame(); // Reutilitza startGame per reiniciar
+                return;
+            }
+            
+            if (isGameOver) return; // Després de l'Enter, no processem més tecles si el joc ha acabat
+
+            const ARROW_UP = 'arrowup'; const W_KEY = 'w';
+            const ARROW_DOWN = 'arrowdown'; const S_KEY = 's';
+            const ARROW_LEFT = 'arrowleft'; const A_KEY = 'a';
+            const ARROW_RIGHT = 'arrowright'; const D_KEY = 'd';
+
+            if ((key === ARROW_UP || key === W_KEY) && dy === 0) { dx = 0; dy = -1; }
+            else if ((key === ARROW_DOWN || key === S_KEY) && dy === 0) { dx = 0; dy = 1; }
+            else if ((key === ARROW_LEFT || key === A_KEY) && dx === 0) { dx = -1; dy = 0; }
+            else if ((key === ARROW_RIGHT || key === D_KEY) && dx === 0) { dx = 1; dy = 0; }
+        }
+        
+        // --- Controls Tàctils ---
+        function setupTouchControls() {
+            const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+            if (isTouchDevice) {
+                touchControlsContainer.style.display = 'block';
+
+                touchUp.addEventListener('touchstart', (e) => { e.preventDefault(); if (dy === 0) { dx = 0; dy = -1; } });
+                touchDown.addEventListener('touchstart', (e) => { e.preventDefault(); if (dy === 0) { dx = 0; dy = 1; } });
+                touchLeft.addEventListener('touchstart', (e) => { e.preventDefault(); if (dx === 0) { dx = -1; dy = 0; } });
+                touchRight.addEventListener('touchstart', (e) => { e.preventDefault(); if (dx === 0) { dx = 1; dy = 0; } });
+            }
+        }
+
+        // Inicialització
+        window.addEventListener('keydown', handleKeyDown);
+        startGameButton.addEventListener('click', startGame);
+        restartGameButton.addEventListener('click', startGame); // Reutilitza startGame per reiniciar
+        window.addEventListener('resize', () => {
+            if (!isGameOver) { // Només redimensiona si el joc no està en marxa o acabat
+                resizeCanvas();
+                // Si el joc està en marxa, potser caldria redibuixar tot.
+                // Per simplicitat, el redimensionament principal es fa a initGame.
+                // Si es vol redimensionament dinàmic durant el joc, caldria:
+                // clearCanvas(); drawSnake(); drawTargetWord();
+            } else {
+                 resizeCanvas(); // Permetre que es redimensioni la pantalla inicial
+            }
+        });
+        
+        // Configura el joc per a la primera càrrega
+        initGame(); // Crida initGame per configurar les mides inicials i estats
+        updateScoreDisplay(); // Per mostrar el rècord guardat
+        setupTouchControls(); // Activa controls tàctils si cal
+
+    </script>
+</body>
+</html>
